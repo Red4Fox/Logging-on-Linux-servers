@@ -1,0 +1,35 @@
+# Данная инструкция необходимо для журналирования введенных комманд на терминале со стороны пользователя
+# результаты должны собираться на сервере мониторинга zabbix
+
+chgrp zabbix /var/log/auth.log
+chmod g+r /var/log/auth.log
+chgrp zabbix /var/log/secure
+chmod g+r /var/log/secure
+
+# Даем разрешение на чтение журнала установки ПО
+chgrp zabbix /var/log/history.log
+chmod g+r /var/log/history.log
+chgrp zabbix /var/log/yum.log
+chmod g+r /var/log/yum.log
+
+# Создаем журнал и даем доступ на чтение.
+touch /var/log/terminal.log
+chgrp zabbix /var/log/terminal.log
+chmod g+r /var/log/terminal.log
+
+# Создаем конфигурационный файл, перенаправляющий 16 уровень сообщения
+touch /etc/rsyslog.d/bash.conf
+echo "local6.*    /var/log/terminal.log" >     /etc/rsyslog.d/bash.conf
+
+# Создаем само правило
+touch /etc/profile.d/key.sh
+
+# ставим на аудит само правило
+chgrp zabbix /etc/profile.d/key.sh
+chmod g+r /etc/profile.d/key.sh
+
+# Открываем /etc/profile.d/key.sh и добавляем следующие записи:
+whoami="$(whoami)@$(echo $SSH_CONNECTION | awk '{print $1}')"export PROMPT_COMMAND='RETRN_VAL=$?;logger -p local6.debug "$whoami [$$]: $(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//" ) [$RETRN_VAL]"'
+
+# Перегружаем службу
+/etc/init.d/rsyslog restart
